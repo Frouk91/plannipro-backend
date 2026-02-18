@@ -4,13 +4,16 @@ const fs = require('fs');
 const path = require('path');
 
 async function initDB() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await pool.query(sql);
     console.log('✅ Base de données initialisée !');
   } catch (err) {
-    console.log('Erreur DB complète:', err);
+    console.log('Erreur DB complète:', err.message);
   }
 }
 initDB();
