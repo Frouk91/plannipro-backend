@@ -1,12 +1,12 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
+const cors = require('cors');
 
-const authRouter   = require('./routes/auth');
-const leavesRouter = require('./routes/leaves');
-const agentsRouter = require('./routes/agents');
+const authRouter = require('./auth');
+const leavesRouter = require('./leaves');
+const agentsRouter = require('./agents');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middlewares globaux ────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ app.use((req, _res, next) => {
 });
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-app.use('/api/auth',   authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/agents', agentsRouter);
 
