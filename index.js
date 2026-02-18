@@ -17,7 +17,16 @@ async function initDB() {
     await pool.query(sql);
     console.log('✅ Base de données initialisée !');
   } catch (err) {
+    console.log('PGHOST:', process.env.PGHOST);
+    console.log('PGPORT:', process.env.PGPORT);
     console.log('Erreur DB complète:', err.message);
+    ```
+
+Sauvegardez puis :
+```
+git add index.js
+git commit - m "Debug variables"
+git push
   }
 }
 initDB();
