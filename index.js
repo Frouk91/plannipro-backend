@@ -10,7 +10,7 @@ async function initDB() {
     await pool.query(sql);
     console.log('✅ Base de données initialisée !');
   } catch (err) {
-    console.log('DB déjà initialisée ou erreur:', err.message);
+    console.log('Erreur DB complète:', err);
   }
 }
 initDB();
