@@ -22,11 +22,10 @@ async function initDB() {
     console.log('Erreur DB complète:', err.message);
     ```
 
-Sauvegardez puis :
+
 ```
 
-git commit - m "Debug variables"
-git push
+
   }
 }
 initDB();
