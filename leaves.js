@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { isWeekend, eachDayOfInterval, parseISO, format } = require('date-fns');
-const db = require('../db/pool');
+const db = require('./pool');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -90,7 +90,7 @@ router.get('/planning', [
 
   const { year, month } = req.query;
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDate   = new Date(year, month, 0).toISOString().split('T')[0]; // Dernier jour du mois
+  const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Dernier jour du mois
 
   try {
     const { rows } = await db.query(`

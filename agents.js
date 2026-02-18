@@ -1,7 +1,7 @@
 const express = require('express');
-const bcrypt  = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
-const db = require('../db/pool');
+const db = require('./pool');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -80,10 +80,10 @@ router.put('/:id', [
     let i = 1;
 
     if (first_name) { updates.push(`first_name = $${i++}`); params.push(first_name); }
-    if (last_name)  { updates.push(`last_name = $${i++}`);  params.push(last_name); }
+    if (last_name) { updates.push(`last_name = $${i++}`); params.push(last_name); }
     if (job_title !== undefined) { updates.push(`job_title = $${i++}`); params.push(job_title); }
-    if (team_id !== undefined)   { updates.push(`team_id = $${i++}`);   params.push(team_id || null); }
-    if (role)       { updates.push(`role = $${i++}`);       params.push(role); }
+    if (team_id !== undefined) { updates.push(`team_id = $${i++}`); params.push(team_id || null); }
+    if (role) { updates.push(`role = $${i++}`); params.push(role); }
 
     if (!updates.length) return res.status(400).json({ error: 'Aucune donnée à mettre à jour.' });
 
@@ -91,7 +91,7 @@ router.put('/:id', [
     if (first_name || last_name) {
       const current = await db.query('SELECT first_name, last_name FROM agents WHERE id = $1', [req.params.id]);
       const fn = first_name || current.rows[0].first_name;
-      const ln = last_name  || current.rows[0].last_name;
+      const ln = last_name || current.rows[0].last_name;
       updates.push(`avatar_initials = $${i++}`);
       params.push((fn[0] + ln[0]).toUpperCase());
     }
