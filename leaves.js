@@ -2,7 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { isWeekend, eachDayOfInterval, parseISO, format } = require('date-fns');
 const db = require('./pool');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requireRole } = require('./auth-middleware');
 
 const router = express.Router();
 router.use(authenticate); // Toutes les routes nécessitent une authentification
