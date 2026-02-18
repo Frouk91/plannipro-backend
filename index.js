@@ -24,7 +24,7 @@ async function initDB() {
 
 Sauvegardez puis :
 ```
-git add index.js
+
 git commit - m "Debug variables"
 git push
   }
