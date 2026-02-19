@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../pool');
-const auth = require('../auth-middleware');
 
-// GET tous les types de congés
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM leave_types ORDER BY name');
     res.json(result.rows);
@@ -13,8 +11,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST créer un type de congé
-router.post('/', auth, async (req, res) => {
+router.post('/', async (req, res) => {
   const { name, color, bg_color } = req.body;
   if (!name || !color) return res.status(400).json({ error: 'Nom et couleur requis' });
   try {
@@ -28,8 +25,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// PATCH modifier un type de congé
-router.patch('/:id', auth, async (req, res) => {
+router.patch('/:id', async (req, res) => {
   const { name, color } = req.body;
   try {
     const result = await db.query(
@@ -42,8 +38,7 @@ router.patch('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE supprimer un type de congé
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM leave_types WHERE id = $1', [req.params.id]);
     res.json({ success: true });
