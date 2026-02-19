@@ -35,7 +35,20 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    const allowed = [
+      process.env.FRONTEND_URL,
+      process.env.FRONTEND_URL + '/',
+      'http://localhost:5173',
+      'https://plannipro-frontend.vercel.app',
+      'https://plannipro-frontend.vercel.app/'
+    ];
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS non autorisé'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
