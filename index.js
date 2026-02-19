@@ -62,6 +62,8 @@ app.use((req, _res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/agents', agentsRouter);
+app.use('/api/teams', require('./routes/teams'));
+app.use('/api/leave-types', require('./routes/leave-types'));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
