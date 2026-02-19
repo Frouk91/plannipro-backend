@@ -7,9 +7,6 @@ const pool = new Pool({
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   ssl: { rejectUnauthorized: false },
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
 });
 
 module.exports = {
@@ -18,8 +15,8 @@ module.exports = {
 };
 ```
 
-Sauvegardez avec **Ctrl+S** puis dans la fenêtre cmd :
+Sauvegardez avec **Ctrl+S**, vérifiez qu'il n'y a pas de `git add` dans le fichier, puis dans la fenêtre **cmd** :
 ```
 git add pool.js
-git commit - m "Fix connexion pool DB"
+git commit - m "Fix pool DB"
 git push
