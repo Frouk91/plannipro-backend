@@ -150,7 +150,7 @@ router.post('/', [
     }
 
     // Si pas d'approbation requise → approuvé directement
-    const status = leaveType.requires_approval ? 'pending' : 'approved';
+    const status = (leaveType.requires_approval && req.agent.role === 'agent') ? 'pending' : 'approved';
     const approved_by = leaveType.requires_approval ? null : req.agent.id;
     const approved_at = leaveType.requires_approval ? null : new Date();
 
