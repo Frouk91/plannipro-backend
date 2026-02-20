@@ -15,11 +15,13 @@ async function initDB() {
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await pool.query(sql);
+    await pool.query("UPDATE agents SET role = 'admin' WHERE email = 'redouane@entreprise.fr'");
+    await pool.query("UPDATE agents SET role = 'manager' WHERE email = 'sophie@entreprise.fr'");
     console.log('Base de donnees initialisee !');
   } catch (err) {
-    console.log('PGHOST:', process.env.PGHOST);
-    console.log('PGPORT:', process.env.PGPORT);
     console.log('Erreur DB:', err.message);
+  } finally {
+    await pool.end();
   }
 }
 initDB();
@@ -33,6 +35,10 @@ const agentsRouter = require('./agents');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+console.log('API PlanniPro demarree sur http://localhost:' + PORT);
+console.log('PGHOST:', process.env.PGHOST);
+console.log('PGPORT:', process.env.PGPORT);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -54,11 +60,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use((req, _res, next) => {
-  console.log(new Date().toISOString() + ' ' + req.method + ' ' + req.path);
-  next();
-});
-
 app.use('/api/auth', authRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/agents', agentsRouter);
@@ -78,6 +79,4 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Erreur serveur interne.' });
 });
 
-app.listen(PORT, () => {
-  console.log('API PlanniPro demarree sur http://localhost:' + PORT);
-});
+app.listen(PORT, () => { });
