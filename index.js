@@ -12,18 +12,28 @@ async function initDB() {
     database: process.env.PGDATABASE,
     ssl: { rejectUnauthorized: false }
   });
+
+  // Initialiser le schema (ignore les erreurs si tables existent déjà)
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await pool.query(sql);
+    console.log('Schema initialise !');
+  } catch (err) {
+    console.log('Schema deja existant:', err.message);
+  }
+
+  // Mettre à jour les rôles (toujours exécuté)
+  try {
     await pool.query("UPDATE agents SET role = 'admin' WHERE email = 'redouane@entreprise.fr'");
     await pool.query("UPDATE agents SET role = 'manager' WHERE email = 'sophie@entreprise.fr'");
-    console.log('Base de donnees initialisee !');
+    console.log('Roles mis a jour !');
   } catch (err) {
-    console.log('Erreur DB:', err.message);
-  } finally {
-    await pool.end();
+    console.log('Erreur mise a jour roles:', err.message);
   }
+
+  await pool.end();
 }
+
 initDB();
 
 const express = require('express');
