@@ -33,7 +33,6 @@ router.get('/', async (req, res) => {
 
 // ── GET /api/agents/:id ────────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
-  // Un agent ne peut voir que son propre profil
   if (req.agent.role === 'agent' && req.params.id !== req.agent.id) {
     return res.status(403).json({ error: 'Accès refusé.' });
   }
@@ -55,6 +54,45 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ── PATCH /api/agents/:id ──────────────────────────────────────────────────
+// Modification simplifiée par nom d'équipe (utilisé par le frontend admin)
+router.patch('/:id', requireRole('manager', 'admin'), async (req, res) => {
+  try {
+    const { email, role, team, password } = req.body;
+
+    // Résoudre le nom d'équipe en team_id
+    let team_id = null;
+    if (team && team.trim() !== '') {
+      const teamResult = await db.query('SELECT id FROM teams WHERE name = $1', [team.trim()]);
+      if (teamResult.rows.length > 0) team_id = teamResult.rows[0].id;
+    }
+
+    const updates = ['updated_at = NOW()'];
+    const params = [];
+    let i = 1;
+
+    if (email) { updates.push(`email = $${i++}`); params.push(email); }
+    if (role) { updates.push(`role = $${i++}`); params.push(role); }
+    if (team !== undefined) { updates.push(`team_id = $${i++}`); params.push(team_id); }
+    if (password) {
+      const hash = await bcrypt.hash(password, 10);
+      updates.push(`password_hash = $${i++}`); params.push(hash);
+    }
+
+    params.push(req.params.id);
+    const { rows } = await db.query(
+      `UPDATE agents SET ${updates.join(', ')} WHERE id = $${i} RETURNING id, email, first_name, last_name, role, avatar_initials, team_id`,
+      params
+    );
+
+    if (!rows.length) return res.status(404).json({ error: 'Agent introuvable.' });
+    res.json({ agent: rows[0], message: 'Agent mis à jour.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
 // ── PUT /api/agents/:id ────────────────────────────────────────────────────
 router.put('/:id', [
   body('first_name').optional().trim().notEmpty(),
@@ -63,7 +101,6 @@ router.put('/:id', [
   body('team_id').optional().isUUID(),
   body('role').optional().isIn(['agent', 'manager', 'admin']),
 ], async (req, res) => {
-  // Un agent ne peut modifier que son propre profil et pas son rôle
   if (req.agent.role === 'agent') {
     if (req.params.id !== req.agent.id) return res.status(403).json({ error: 'Accès refusé.' });
     delete req.body.role;
@@ -87,7 +124,6 @@ router.put('/:id', [
 
     if (!updates.length) return res.status(400).json({ error: 'Aucune donnée à mettre à jour.' });
 
-    // Recalculer les initiales si prénom/nom changé
     if (first_name || last_name) {
       const current = await db.query('SELECT first_name, last_name FROM agents WHERE id = $1', [req.params.id]);
       const fn = first_name || current.rows[0].first_name;
@@ -120,7 +156,7 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// ── GET /api/agents/teams ──────────────────────────────────────────────────
+// ── GET /api/agents/meta/teams ─────────────────────────────────────────────
 router.get('/meta/teams', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM teams ORDER BY name');
@@ -130,7 +166,7 @@ router.get('/meta/teams', async (req, res) => {
   }
 });
 
-// ── POST /api/agents/teams ─────────────────────────────────────────────────
+// ── POST /api/agents/meta/teams ────────────────────────────────────────────
 router.post('/meta/teams', requireRole('manager', 'admin'), [
   body('name').trim().notEmpty(),
 ], async (req, res) => {
