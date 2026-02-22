@@ -16,9 +16,16 @@ router.post('/', async (req, res) => {
   const { label, color } = req.body;
   if (!label || !color) return res.status(400).json({ error: 'Label et couleur requis' });
   try {
+    // Générer un code unique à partir du label
+    const code = label.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // supprimer accents
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .slice(0, 20);
+
     const result = await db.query(
-      'INSERT INTO leave_types (label, color) VALUES ($1, $2) RETURNING *',
-      [label, color]
+      'INSERT INTO leave_types (label, color, code) VALUES ($1, $2, $3) RETURNING *',
+      [label, color, code]
     );
     res.json(result.rows[0]);
   } catch (err) {
