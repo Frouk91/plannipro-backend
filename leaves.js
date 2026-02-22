@@ -38,10 +38,7 @@ router.get('/', [
     let i = 1;
 
     // Un agent ne voit que ses propres demandes
-    if (req.agent.role === 'agent') {
-      whereClause.push(`lr.agent_id = $${i++}`);
-      params.push(req.agent.id);
-    } else if (agent_id) {
+    if (agent_id) {
       whereClause.push(`lr.agent_id = $${i++}`);
       params.push(agent_id);
     }
