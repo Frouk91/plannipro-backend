@@ -35,11 +35,11 @@ router.post('/', async (req, res) => {
 });
 
 router.patch('/:id', async (req, res) => {
-  const { label, color } = req.body;
+  const { label, color, requires_approval } = req.body;
   try {
     const result = await db.query(
-      'UPDATE leave_types SET label = COALESCE($1, label), color = COALESCE($2, color) WHERE id = $3 RETURNING *',
-      [label, color, req.params.id]
+      'UPDATE leave_types SET label = COALESCE($1, label), color = COALESCE($2, color), requires_approval = COALESCE($3, requires_approval) WHERE id = $4 RETURNING *',
+      [label, color, requires_approval !== undefined ? requires_approval : null, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
