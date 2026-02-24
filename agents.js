@@ -32,33 +32,29 @@ router.patch('/:id', async (req, res) => {
       if (teamResult.rows.length > 0) team_id = teamResult.rows[0].id;
     }
 
-    // Hash du mot de passe si fourni
-    let passwordHash = null;
+    // Construire la requête dynamiquement
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (first_name) { fields.push(`first_name = $${idx++}`); values.push(first_name); }
+    if (last_name !== undefined) { fields.push(`last_name = $${idx++}`); values.push(last_name); }
+    if (email) { fields.push(`email = $${idx++}`); values.push(email); }
+    if (role) { fields.push(`role = $${idx++}`); values.push(role); }
+    if (team_id !== null) { fields.push(`team_id = $${idx++}`); values.push(team_id); }
     if (password && password.trim().length > 0) {
-      passwordHash = await bcrypt.hash(password, 10);
+      const hash = await bcrypt.hash(password, 10);
+      fields.push(`password = $${idx++}`);
+      values.push(hash);
     }
 
-    const { rows } = await db.query(`
-      UPDATE agents SET
-        first_name   = COALESCE($1, first_name),
-        last_name    = COALESCE($2, last_name),
-        email        = COALESCE($3, email),
-        role         = COALESCE($4, role),
-        team_id      = CASE WHEN $5::text IS NOT NULL THEN $6::int ELSE team_id END,
-        password     = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE password END,
-        updated_at   = NOW()
-      WHERE id = $8
-      RETURNING id, first_name, last_name, email, role, avatar_initials
-    `, [
-      first_name  || null,
-      last_name   || null,
-      email       || null,
-      role        || null,
-      team        || null,
-      team_id,
-      passwordHash,
-      req.params.id
-    ]);
+    if (fields.length === 0) return res.json({ message: 'Rien à modifier.' });
+
+    values.push(req.params.id);
+    const { rows } = await db.query(
+      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, first_name, last_name, email, role, avatar_initials`,
+      values
+    );
 
     if (!rows.length) return res.status(404).json({ error: 'Agent introuvable.' });
     res.json({ agent: rows[0] });
