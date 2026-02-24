@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const db = require('./pool');
-const bcrypt = require('bcrypt');
 
 // GET tous les agents
 router.get('/', async (req, res) => {
@@ -38,14 +37,13 @@ router.patch('/:id', async (req, res) => {
     let idx = 1;
 
     if (first_name) { fields.push(`first_name = $${idx++}`); values.push(first_name); }
-    if (last_name !== undefined) { fields.push(`last_name = $${idx++}`); values.push(last_name); }
+    if (last_name !== undefined && last_name !== null) { fields.push(`last_name = $${idx++}`); values.push(last_name); }
     if (email) { fields.push(`email = $${idx++}`); values.push(email); }
     if (role) { fields.push(`role = $${idx++}`); values.push(role); }
     if (team_id !== null) { fields.push(`team_id = $${idx++}`); values.push(team_id); }
     if (password && password.trim().length > 0) {
-      const hash = await bcrypt.hash(password, 10);
       fields.push(`password = $${idx++}`);
-      values.push(hash);
+      values.push(password);
     }
 
     if (fields.length === 0) return res.json({ message: 'Rien à modifier.' });
