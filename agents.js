@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../pool');
+const db = require('./pool');
 const bcrypt = require('bcrypt');
 
 // GET tous les agents
