@@ -37,6 +37,9 @@ router.get('/', [
     let params = [];
     let i = 1;
 
+    // ✅ CORRECTION : Exclure les demandes annulées par défaut
+    whereClause.push(`lr.status != 'cancelled'`);
+
     // Un agent ne voit que ses propres demandes
     if (agent_id) {
       whereClause.push(`lr.agent_id = $${i++}`);
@@ -93,6 +96,7 @@ router.get('/planning', [
     const { rows } = await db.query(`
       SELECT * FROM v_planning_monthly
       WHERE start_date <= $2 AND end_date >= $1
+        AND status != 'cancelled'
       ORDER BY agent_name, start_date
     `, [startDate, endDate]);
 
@@ -129,7 +133,7 @@ router.post('/', [
     if (!ltResult.rows.length) return res.status(400).json({ error: 'Type de congé invalide.' });
     const leaveType = ltResult.rows[0];
 
-    // Vérifier les chevauchements
+    // Vérifier les chevauchements (exclure les cancelled/rejected)
     const overlap = await db.query(`
       SELECT id FROM leave_requests
       WHERE agent_id = $1
