@@ -22,6 +22,17 @@ async function initDB() {
     console.log('Schema deja existant:', err.message);
   }
 
+  // ✅ MIGRATION : ajouter la colonne can_book_presence_sites si elle n'existe pas
+  try {
+    await pool.query(`
+      ALTER TABLE agents 
+      ADD COLUMN IF NOT EXISTS can_book_presence_sites BOOLEAN DEFAULT false
+    `);
+    console.log('Migration can_book_presence_sites OK !');
+  } catch (err) {
+    console.log('Migration can_book_presence_sites:', err.message);
+  }
+
   // Mettre à jour les rôles (toujours exécuté)
   try {
     await pool.query("UPDATE agents SET role = 'admin' WHERE email = 'redouane@entreprise.fr'");
