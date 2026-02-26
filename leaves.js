@@ -128,14 +128,32 @@ router.post('/', [
     const leaveType = ltResult.rows[0];
 
     // Vérifier les chevauchements
+    // Si allow_presence_overlap : on ignore les chevauchements avec les types présence (Rueil/Paris)
+    const allowPresenceOverlap = req.body.allow_presence_overlap === true;
+    const PRESENCE_CODES_CHECK = ['rueil', 'paris'];
+
     const overlap = await db.query(`
-      SELECT id FROM leave_requests
-      WHERE agent_id = $1
-        AND status NOT IN ('rejected', 'cancelled')
-        AND start_date <= $3 AND end_date >= $2
+      SELECT lr.id, lt.code as leave_code FROM leave_requests lr
+      JOIN leave_types lt ON lt.id = lr.leave_type_id
+      WHERE lr.agent_id = $1
+        AND lr.status NOT IN ('rejected', 'cancelled')
+        AND lr.start_date <= $3 AND lr.end_date >= $2
     `, [target_agent_id, start_date, end_date]);
 
-    if (overlap.rows.length) {
+    const realOverlap = overlap.rows.filter(row => {
+      if (allowPresenceOverlap && PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
+        return false; // ignorer les présences si on pose un CP/RTT par dessus
+      }
+      if (isPresenceType && PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
+        return false; // ignorer si on pose une présence par dessus une autre présence
+      }
+      if (isPresenceType && !PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
+        return false; // la présence peut coexister avec un CP/RTT existant
+      }
+      return true;
+    });
+
+    if (realOverlap.length) {
       return res.status(409).json({ error: 'Cette période chevauche une demande existante.' });
     }
 
@@ -148,7 +166,7 @@ router.post('/', [
     // et si l'agent a la permission can_book_presence_sites
     const PRESENCE_CODES = ['rueil', 'paris'];
     const isPresenceType = PRESENCE_CODES.includes((leaveType.code || '').toLowerCase()) ||
-      PRESENCE_CODES.includes((leaveType.label || '').toLowerCase());
+                           PRESENCE_CODES.includes((leaveType.label || '').toLowerCase());
 
     let autoApprove = false;
     if (isPresenceType && req.agent.role === 'agent') {
