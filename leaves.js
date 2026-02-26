@@ -20,11 +20,10 @@ async function countWorkingDays(startDate, endDate) {
 }
 
 // ── GET /api/leaves ────────────────────────────────────────────────────────
-// Liste des demandes (filtrée selon le rôle)
 router.get('/', [
   query('status').optional().isIn(['pending', 'approved', 'rejected', 'cancelled']),
   query('agent_id').optional().isUUID(),
-  query('month').optional().matches(/^\d{4}-\d{2}$/), // format: 2025-06
+  query('month').optional().matches(/^\d{4}-\d{2}$/),
   query('team_id').optional().isUUID(),
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -37,10 +36,8 @@ router.get('/', [
     let params = [];
     let i = 1;
 
-    // ✅ CORRECTION : Exclure les demandes annulées par défaut
     whereClause.push(`lr.status != 'cancelled'`);
 
-    // Un agent ne voit que ses propres demandes
     if (agent_id) {
       whereClause.push(`lr.agent_id = $${i++}`);
       params.push(agent_id);
@@ -79,8 +76,7 @@ router.get('/', [
   }
 });
 
-// ── GET /api/leaves/planning?year=2025&month=6 ────────────────────────────
-// Vue planning mensuel (tous agents) - pour le calendrier
+// ── GET /api/leaves/planning ───────────────────────────────────────────────
 router.get('/planning', [
   query('year').isInt({ min: 2020, max: 2030 }),
   query('month').isInt({ min: 1, max: 12 }),
@@ -90,7 +86,7 @@ router.get('/planning', [
 
   const { year, month } = req.query;
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Dernier jour du mois
+  const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
   try {
     const { rows } = await db.query(`
@@ -108,7 +104,6 @@ router.get('/planning', [
 });
 
 // ── POST /api/leaves ───────────────────────────────────────────────────────
-// Créer une demande de congé
 router.post('/', [
   body('leave_type_code').notEmpty(),
   body('start_date').isDate(),
@@ -119,7 +114,6 @@ router.post('/', [
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
   const { leave_type_code, start_date, end_date, reason } = req.body;
-  // Un manager peut créer pour un autre agent
   const target_agent_id = (req.agent.role !== 'agent' && req.body.agent_id)
     ? req.body.agent_id
     : req.agent.id;
@@ -133,7 +127,7 @@ router.post('/', [
     if (!ltResult.rows.length) return res.status(400).json({ error: 'Type de congé invalide.' });
     const leaveType = ltResult.rows[0];
 
-    // Vérifier les chevauchements (exclure les cancelled/rejected)
+    // Vérifier les chevauchements
     const overlap = await db.query(`
       SELECT id FROM leave_requests
       WHERE agent_id = $1
@@ -150,10 +144,50 @@ router.post('/', [
       return res.status(400).json({ error: 'Aucun jour ouvré sur cette période.' });
     }
 
-    // Si pas d'approbation requise → approuvé directement
-    const status = (leaveType.requires_approval && req.agent.role === 'agent') ? 'pending' : 'approved';
-    const approved_by = leaveType.requires_approval ? null : req.agent.id;
-    const approved_at = leaveType.requires_approval ? null : new Date();
+    // ✅ CORRECTION : Vérifier si c'est un type présence site (Rueil/Paris)
+    // et si l'agent a la permission can_book_presence_sites
+    const PRESENCE_CODES = ['rueil', 'paris'];
+    const isPresenceType = PRESENCE_CODES.includes((leaveType.code || '').toLowerCase()) ||
+      PRESENCE_CODES.includes((leaveType.label || '').toLowerCase());
+
+    let autoApprove = false;
+    if (isPresenceType && req.agent.role === 'agent') {
+      // Vérifier la permission de l'agent
+      const agentResult = await db.query(
+        'SELECT can_book_presence_sites FROM agents WHERE id = $1',
+        [target_agent_id]
+      );
+      if (agentResult.rows.length && agentResult.rows[0].can_book_presence_sites) {
+        autoApprove = true;
+      }
+    }
+
+    // Déterminer le statut final
+    // - Manager/admin : toujours approuvé directement
+    // - Agent avec présence autorisée : approuvé directement
+    // - Agent normal : pending si requires_approval, sinon approuvé
+    let status, approved_by, approved_at;
+    if (req.agent.role !== 'agent') {
+      // Manager ou admin : approuvé directement
+      status = 'approved';
+      approved_by = req.agent.id;
+      approved_at = new Date();
+    } else if (autoApprove) {
+      // Agent autorisé pour les présences site : approuvé directement
+      status = 'approved';
+      approved_by = target_agent_id;
+      approved_at = new Date();
+    } else if (leaveType.requires_approval) {
+      // Agent normal avec type nécessitant validation
+      status = 'pending';
+      approved_by = null;
+      approved_at = null;
+    } else {
+      // Agent normal avec type sans validation
+      status = 'approved';
+      approved_by = req.agent.id;
+      approved_at = new Date();
+    }
 
     const { rows } = await db.query(`
       INSERT INTO leave_requests
@@ -162,7 +196,10 @@ router.post('/', [
       RETURNING *
     `, [target_agent_id, leaveType.id, start_date, end_date, total_days, status, reason || null, approved_by, approved_at]);
 
-    res.status(201).json({ leave: rows[0], message: status === 'pending' ? 'Demande envoyée pour validation.' : 'Congé enregistré.' });
+    res.status(201).json({
+      leave: rows[0],
+      message: status === 'pending' ? 'Demande envoyée pour validation.' : 'Congé enregistré.'
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
@@ -170,7 +207,6 @@ router.post('/', [
 });
 
 // ── PATCH /api/leaves/:id/approve ─────────────────────────────────────────
-// Approuver une demande (manager/admin uniquement)
 router.patch('/:id/approve', requireRole('manager', 'admin'), [
   body('manager_comment').optional().trim(),
 ], async (req, res) => {
@@ -192,7 +228,6 @@ router.patch('/:id/approve', requireRole('manager', 'admin'), [
 });
 
 // ── PATCH /api/leaves/:id/reject ──────────────────────────────────────────
-// Refuser une demande (manager/admin uniquement)
 router.patch('/:id/reject', requireRole('manager', 'admin'), [
   body('manager_comment').trim().notEmpty().withMessage('Un motif de refus est requis.'),
 ], async (req, res) => {
@@ -217,7 +252,6 @@ router.patch('/:id/reject', requireRole('manager', 'admin'), [
 });
 
 // ── DELETE /api/leaves/:id ─────────────────────────────────────────────────
-// Annuler une demande (par l'agent lui-même si pending, ou manager)
 router.delete('/:id', async (req, res) => {
   try {
     const { rows: existing } = await db.query(
@@ -227,9 +261,18 @@ router.delete('/:id', async (req, res) => {
     if (!existing.length) return res.status(404).json({ error: 'Demande introuvable.' });
 
     const leave = existing[0];
+
+    // ✅ CORRECTION : Les agents autorisés peuvent supprimer leurs présences approuvées
+    const agentResult = await db.query(
+      'SELECT can_book_presence_sites FROM agents WHERE id = $1',
+      [req.agent.id]
+    );
+    const canBookPresence = agentResult.rows.length && agentResult.rows[0].can_book_presence_sites;
+
     const canCancel =
       req.agent.role !== 'agent' ||
-      (leave.agent_id === req.agent.id && leave.status === 'pending');
+      (leave.agent_id === req.agent.id && leave.status === 'pending') ||
+      (leave.agent_id === req.agent.id && leave.status === 'approved' && canBookPresence);
 
     if (!canCancel) return res.status(403).json({ error: 'Vous ne pouvez pas annuler cette demande.' });
 
