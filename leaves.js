@@ -127,9 +127,14 @@ router.post('/', [
     if (!ltResult.rows.length) return res.status(400).json({ error: 'Type de congé invalide.' });
     const leaveType = ltResult.rows[0];
 
+    // Vérifier si c'est un type présence site (Rueil/Paris)
+    const PRESENCE_CODES = ['rueil', 'paris'];
+    const isPresenceType = PRESENCE_CODES.includes((leaveType.code || '').toLowerCase()) ||
+                           PRESENCE_CODES.includes((leaveType.label || '').toLowerCase());
+
     // Vérifier les chevauchements
     // Règle : Rueil/Paris peuvent coexister avec n'importe quel autre type de congé
-    const PRESENCE_CODES_CHECK = ['rueil', 'paris'];
+    const PRESENCE_CODES_CHECK = PRESENCE_CODES;
 
     const overlap = await db.query(`
       SELECT lr.id, lt.code as leave_code FROM leave_requests lr
@@ -158,11 +163,7 @@ router.post('/', [
       return res.status(400).json({ error: 'Aucun jour ouvré sur cette période.' });
     }
 
-    // ✅ CORRECTION : Vérifier si c'est un type présence site (Rueil/Paris)
-    // et si l'agent a la permission can_book_presence_sites
-    const PRESENCE_CODES = ['rueil', 'paris'];
-    const isPresenceType = PRESENCE_CODES.includes((leaveType.code || '').toLowerCase()) ||
-                           PRESENCE_CODES.includes((leaveType.label || '').toLowerCase());
+
 
     let autoApprove = false;
     if (isPresenceType && req.agent.role === 'agent') {
