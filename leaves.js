@@ -128,8 +128,7 @@ router.post('/', [
     const leaveType = ltResult.rows[0];
 
     // Vérifier les chevauchements
-    // Si allow_presence_overlap : on ignore les chevauchements avec les types présence (Rueil/Paris)
-    const allowPresenceOverlap = req.body.allow_presence_overlap === true;
+    // Règle : Rueil/Paris peuvent coexister avec n'importe quel autre type de congé
     const PRESENCE_CODES_CHECK = ['rueil', 'paris'];
 
     const overlap = await db.query(`
@@ -141,15 +140,12 @@ router.post('/', [
     `, [target_agent_id, start_date, end_date]);
 
     const realOverlap = overlap.rows.filter(row => {
-      if (allowPresenceOverlap && PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
-        return false; // ignorer les présences si on pose un CP/RTT par dessus
-      }
-      if (isPresenceType && PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
-        return false; // ignorer si on pose une présence par dessus une autre présence
-      }
-      if (isPresenceType && !PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase())) {
-        return false; // la présence peut coexister avec un CP/RTT existant
-      }
+      const existingIsPresence = PRESENCE_CODES_CHECK.includes((row.leave_code || '').toLowerCase());
+      // Si on pose une présence, elle ne bloque jamais
+      if (isPresenceType) return false;
+      // Si la demande existante est une présence, elle ne bloque pas un CP/RTT
+      if (existingIsPresence) return false;
+      // Sinon conflit réel
       return true;
     });
 
