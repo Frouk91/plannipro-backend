@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT a.id, a.first_name, a.last_name, a.email, a.role,
-             a.avatar_initials, t.name as team_name
+             a.avatar_initials, a.can_book_presence_sites, t.name as team_name
       FROM agents a
       LEFT JOIN teams t ON a.team_id = t.id
       ORDER BY a.first_name, a.last_name
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/agents/:id
 router.patch('/:id', async (req, res) => {
   try {
-    const { first_name, last_name, email, role, team, password } = req.body;
+    const { first_name, last_name, email, role, team, password, can_book_presence_sites } = req.body;
 
     // Résoudre l'équipe par nom → ID
     let team_id = null;
@@ -30,6 +30,8 @@ router.patch('/:id', async (req, res) => {
       const teamResult = await db.query('SELECT id FROM teams WHERE name = $1', [team]);
       if (teamResult.rows.length > 0) team_id = teamResult.rows[0].id;
     }
+    // Si team est une chaîne vide, on retire l'agent de son équipe
+    if (team === '') team_id = null;
 
     // Construire la requête dynamiquement
     const fields = [];
@@ -41,16 +43,22 @@ router.patch('/:id', async (req, res) => {
     if (email) { fields.push(`email = $${idx++}`); values.push(email); }
     if (role) { fields.push(`role = $${idx++}`); values.push(role); }
     if (team_id !== null) { fields.push(`team_id = $${idx++}`); values.push(team_id); }
+    if (team === '') { fields.push(`team_id = $${idx++}`); values.push(null); }
     if (password && password.trim().length > 0) {
       fields.push(`password = $${idx++}`);
       values.push(password);
+    }
+    // ✅ CORRECTION : sauvegarder can_book_presence_sites
+    if (can_book_presence_sites !== undefined) {
+      fields.push(`can_book_presence_sites = $${idx++}`);
+      values.push(can_book_presence_sites);
     }
 
     if (fields.length === 0) return res.json({ message: 'Rien à modifier.' });
 
     values.push(req.params.id);
     const { rows } = await db.query(
-      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, first_name, last_name, email, role, avatar_initials`,
+      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, first_name, last_name, email, role, avatar_initials, can_book_presence_sites`,
       values
     );
 
