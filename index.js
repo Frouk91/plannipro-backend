@@ -5,41 +5,16 @@ const path = require('path');
 
 async function initDB() {
   const pool = new Pool({
-    host: process.env.PGHOST,
-    port: process.env.PGPORT,
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
   });
 
-  // Initialiser le schema (ignore les erreurs si tables existent déjà)
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await pool.query(sql);
-    console.log('Schema initialise !');
+    console.log('Schema initialisé !');
   } catch (err) {
-    console.log('Schema deja existant:', err.message);
-  }
-
-  // ✅ MIGRATION : ajouter la colonne can_book_presence_sites si elle n'existe pas
-  try {
-    await pool.query(`
-      ALTER TABLE agents 
-      ADD COLUMN IF NOT EXISTS can_book_presence_sites BOOLEAN DEFAULT false
-    `);
-    console.log('Migration can_book_presence_sites OK !');
-  } catch (err) {
-    console.log('Migration can_book_presence_sites:', err.message);
-  }
-
-  // Mettre à jour les rôles (toujours exécuté)
-  try {
-    await pool.query("UPDATE agents SET role = 'admin' WHERE email = 'redouane@entreprise.fr'");
-    await pool.query("UPDATE agents SET role = 'manager' WHERE email = 'sophie@entreprise.fr'");
-    console.log('Roles mis a jour !');
-  } catch (err) {
-    console.log('Erreur mise a jour roles:', err.message);
+    console.log('Schema:', err.message);
   }
 
   await pool.end();
@@ -57,18 +32,14 @@ const agentsRouter = require('./agents');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-console.log('API PlanniPro demarree sur http://localhost:' + PORT);
-console.log('PGHOST:', process.env.PGHOST);
-console.log('PGPORT:', process.env.PGPORT);
+console.log('API PlanniPro démarrée sur port ' + PORT);
 
 app.use(cors({
   origin: function (origin, callback) {
     const allowed = [
       process.env.FRONTEND_URL,
-      process.env.FRONTEND_URL + '/',
       'http://localhost:5173',
       'https://plannipro-frontend.vercel.app',
-      'https://plannipro-frontend.vercel.app/'
     ];
     if (!origin || allowed.includes(origin)) {
       callback(null, true);
@@ -100,4 +71,4 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Erreur serveur interne.' });
 });
 
-app.listen(PORT, () => { });
+app.listen(PORT, () => {});
