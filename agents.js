@@ -19,6 +19,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/agents/migrate-roles — à appeler UNE FOIS pour ajouter coordinator
+// Supprimez cette route après utilisation
+router.get('/migrate-roles', async (req, res) => {
+  try {
+    await db.query(`ALTER TABLE agents DROP CONSTRAINT IF EXISTS agents_role_check`);
+    await db.query(`ALTER TABLE agents ADD CONSTRAINT agents_role_check CHECK (role IN ('agent', 'coordinator', 'manager', 'admin'))`);
+    res.json({ success: true, message: 'Contrainte role mise à jour avec coordinator.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/agents/:id
 router.patch('/:id', async (req, res) => {
   try {
@@ -48,7 +61,6 @@ router.patch('/:id', async (req, res) => {
       fields.push(`password = $${idx++}`);
       values.push(password);
     }
-    // ✅ CORRECTION : sauvegarder can_book_presence_sites
     if (can_book_presence_sites !== undefined) {
       fields.push(`can_book_presence_sites = $${idx++}`);
       values.push(can_book_presence_sites);
