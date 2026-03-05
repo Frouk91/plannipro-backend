@@ -62,6 +62,18 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Route temporaire d'import — à supprimer après utilisation
+app.get('/run-import', async (req, res) => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  try {
+    const sql = fs.readFileSync(path.join(__dirname, 'import_data.sql'), 'utf8');
+    await pool.query(sql);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
 });
@@ -70,15 +82,5 @@ app.use((err, _req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Erreur serveur interne.' });
 });
-app.get('/run-import', async (req, res) => {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  try {
-    const sql = require('fs').readFileSync(require('path').join(__dirname, 'import_data.sql'), 'utf8');
-    await pool.query(sql);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-app.listen(PORT, () => { });
+
+app.listen(PORT, () => {});
