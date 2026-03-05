@@ -62,39 +62,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Route temporaire export congés — supprimer après
-app.get('/export-leaves', async (req, res) => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  try {
-    const { rows } = await pool.query(`
-      SELECT lr.*, a.first_name, a.last_name, a.avatar_initials,
-             t.name AS team_name,
-             lt.code AS leave_type_code, lt.label AS leave_type_label, lt.color
-      FROM leave_requests lr
-      JOIN agents a ON a.id = lr.agent_id
-      LEFT JOIN teams t ON t.id = a.team_id
-      LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
-      ORDER BY lr.created_at DESC
-    `);
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Route temporaire import congés — supprimer après
-app.get('/run-import', async (req, res) => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  try {
-    const sql = fs.readFileSync(path.join(__dirname, 'import_leaves.sql'), 'utf8');
-    await pool.query(sql);
-    res.json({ success: true, message: 'Import congés OK' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  } finally {
-    await pool.end();
-  }
-});
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
