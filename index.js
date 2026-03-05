@@ -82,6 +82,20 @@ app.get('/export-leaves', async (req, res) => {
   }
 });
 
+// Route temporaire import congés — supprimer après
+app.get('/run-import', async (req, res) => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  try {
+    const sql = fs.readFileSync(path.join(__dirname, 'import_leaves.sql'), 'utf8');
+    await pool.query(sql);
+    res.json({ success: true, message: 'Import congés OK' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    await pool.end();
+  }
+});
+
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
 });
