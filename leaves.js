@@ -23,8 +23,9 @@ router.get('/', async (req, res) => {
 
     if (status) { where.push(`l.status = $${i++}`); params.push(status); }
     if (month) {
-      where.push(`TO_CHAR(l.start_date, 'YYYY-MM') = $${i++}`);
+      where.push(`l.start_date <= ($${i}::text || '-01')::date + interval '1 month' - interval '1 day' AND l.end_date >= ($${i}::text || '-01')::date`);
       params.push(month);
+      i++;
     }
 
     const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
