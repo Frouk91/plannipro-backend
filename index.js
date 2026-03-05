@@ -62,25 +62,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/debug-leaves', async (req, res) => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  try {
-    const month = req.query.month || '2026-02';
-    const { rows } = await pool.query(
-      `SELECT id, start_date, end_date, status FROM leaves
-       WHERE start_date <= ($1 || '-01')::date + interval '1 month' - interval '1 day'
-       AND end_date >= ($1 || '-01')::date
-       LIMIT 10`,
-      [month]
-    );
-    res.json({ count: rows.length, rows });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  } finally {
-    await pool.end();
-  }
-});
-
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
 });
