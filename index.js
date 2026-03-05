@@ -62,6 +62,17 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/debug-leaves', async (req, res) => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  try {
+    const { rows } = await pool.query('SELECT COUNT(*) FROM leaves');
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    await pool.end();
+  }
+});
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
