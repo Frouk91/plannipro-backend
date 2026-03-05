@@ -62,19 +62,19 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Route temporaire export congés Railway — supprimer après
+// Route temporaire export congés — supprimer après
 app.get('/export-leaves', async (req, res) => {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   try {
     const { rows } = await pool.query(`
-      SELECT l.*, a.first_name, a.last_name, a.avatar_initials,
+      SELECT lr.*, a.first_name, a.last_name, a.avatar_initials,
              t.name AS team_name,
              lt.code AS leave_type_code, lt.label AS leave_type_label, lt.color
-      FROM leaves l
-      JOIN agents a ON a.id = l.agent_id
+      FROM leave_requests lr
+      JOIN agents a ON a.id = lr.agent_id
       LEFT JOIN teams t ON t.id = a.team_id
-      LEFT JOIN leave_types lt ON lt.id = l.leave_type_id
-      ORDER BY l.created_at DESC
+      LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
+      ORDER BY lr.created_at DESC
     `);
     res.json(rows);
   } catch (err) {
