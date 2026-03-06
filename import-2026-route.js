@@ -1,20 +1,25 @@
-// Route temporaire d'import - À SUPPRIMER après usage
 const express = require('express');
 const router = express.Router();
-const db = require('./pool');
+const { Pool } = require('pg');
+
+const db = new Pool({
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: { rejectUnauthorized: false }
+});
 
 router.get('/', async (req, res) => {
-  const client = await db.connect();
   try {
-    // Créer le type Pont si inexistant
-    await client.query(`
+    await db.query(`
       INSERT INTO leave_types (code, label, color, requires_approval)
       SELECT 'pont', 'Pont', '#f59e0b', FALSE
       WHERE NOT EXISTS (SELECT 1 FROM leave_types WHERE code = 'pont')
     `);
 
-    // Insérer les 65 congés
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-15', '2026-04-15', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -26,7 +31,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-24', '2026-04-24', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -38,7 +43,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-30', '2026-04-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -50,7 +55,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-26', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -62,7 +67,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -74,7 +79,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-18', '2026-04-18', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -86,7 +91,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-07', '2026-05-07', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -98,7 +103,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -110,7 +115,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-26', '2026-05-26', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -122,7 +127,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-11', '2026-04-11', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -134,7 +139,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-25', '2026-04-25', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -146,7 +151,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-28', '2026-05-07', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -158,7 +163,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -170,7 +175,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-12', '2026-05-12', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -182,7 +187,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-13', '2026-05-13', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -194,7 +199,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-22', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -206,7 +211,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-21', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -218,7 +223,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -230,7 +235,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-15', '2026-04-15', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -242,7 +247,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-25', '2026-04-25', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -254,7 +259,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-12', '2026-05-12', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -266,7 +271,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-23', '2026-05-23', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -278,7 +283,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-28', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -290,7 +295,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -302,7 +307,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-28', '2026-04-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -314,7 +319,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-07', '2026-04-07', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -326,7 +331,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-02', '2026-05-02', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -338,7 +343,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-05', '2026-05-05', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -350,7 +355,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-06', '2026-05-07', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -362,7 +367,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -374,7 +379,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-17', '2026-04-18', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -386,7 +391,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-25', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -398,7 +403,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-23', '2026-05-23', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -410,7 +415,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-26', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -422,7 +427,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -434,7 +439,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-04', '2026-04-04', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -446,7 +451,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-10', '2026-04-10', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -458,7 +463,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-14', '2026-04-15', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -470,7 +475,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-02', '2026-05-02', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -482,7 +487,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-12', '2026-05-14', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -494,7 +499,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-25', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -506,7 +511,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-28', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -518,7 +523,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -530,7 +535,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-16', '2026-04-18', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -542,7 +547,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-30', '2026-04-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -554,7 +559,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-02', '2026-05-02', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -566,7 +571,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-26', '2026-05-26', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -578,7 +583,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-22', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -590,7 +595,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-19', '2026-05-19', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -602,7 +607,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -614,7 +619,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-04', '2026-04-04', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -626,7 +631,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -638,7 +643,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -650,7 +655,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-29', '2026-04-29', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -662,7 +667,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -674,7 +679,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-21', '2026-05-21', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -686,7 +691,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-04', '2026-04-04', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -698,7 +703,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -710,7 +715,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-02', '2026-05-02', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -722,7 +727,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-30', '2026-05-30', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -734,7 +739,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-14', '2026-04-14', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -746,7 +751,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-04-22', '2026-04-25', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -758,7 +763,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-09', '2026-05-09', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -770,7 +775,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-12', '2026-05-12', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -782,7 +787,7 @@ router.get('/', async (req, res) => {
       )
     LIMIT 1
   `);
-  await client.query(`
+  await db.query(`
     INSERT INTO leaves (agent_id, leave_type_id, start_date, end_date, status, reason)
     SELECT a.id, lt.id, '2026-05-28', '2026-05-28', 'approved', 'Import Excel Planning 2026'
     FROM agents a
@@ -795,13 +800,11 @@ router.get('/', async (req, res) => {
     LIMIT 1
   `);
 
-    const { rows } = await client.query(`SELECT COUNT(*) as total FROM leaves WHERE reason = 'Import Excel Planning 2026'`);
+    const { rows } = await db.query(`SELECT COUNT(*) as total FROM leaves WHERE reason = 'Import Excel Planning 2026'`);
     res.json({ success: true, imported: rows[0].total });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
   }
 });
 
