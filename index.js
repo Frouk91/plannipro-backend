@@ -63,7 +63,6 @@ app.get('/health', (_req, res) => {
 });
 
 // Route temporaire d'import 2026 - À SUPPRIMER après usage
-app.use('/run-import-2026', require('./import-2026-route'));
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
