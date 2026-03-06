@@ -71,4 +71,5 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Erreur serveur interne.' });
 });
 
-app.listen(PORT, () => {});
+app.use('/run-import-2026', require('./import-2026-route'));
+app.listen(PORT, () => { });
