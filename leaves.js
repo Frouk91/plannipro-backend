@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
       ORDER BY l.created_at DESC
     `, params);
 
-    res.json(rows);
+    res.json({ leaves: rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
