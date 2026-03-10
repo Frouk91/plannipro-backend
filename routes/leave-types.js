@@ -15,14 +15,15 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { label, color } = req.body;
   if (!label || !color) return res.status(400).json({ error: 'Label et couleur requis' });
+  // Générer un code unique à partir du label
+  const baseCode = label.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')
+    .replace(/^_|_$/g, '').slice(0, 20);
   try {
-    // Générer un code unique à partir du label
-    const code = label.toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // supprimer accents
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '')
-      .slice(0, 20);
-
+    let code = baseCode;
+    const existing = await db.query("SELECT code FROM leave_types WHERE code LIKE $1", [baseCode + '%']);
+    if (existing.rows.length > 0) code = baseCode + '_' + Date.now().toString().slice(-4);
     const result = await db.query(
       'INSERT INTO leave_types (label, color, code) VALUES ($1, $2, $3) RETURNING *',
       [label, color, code]
@@ -35,11 +36,11 @@ router.post('/', async (req, res) => {
 });
 
 router.patch('/:id', async (req, res) => {
-  const { label, color, requires_approval } = req.body;
+  const { label, color } = req.body;
   try {
     const result = await db.query(
-      'UPDATE leave_types SET label = COALESCE($1, label), color = COALESCE($2, color), requires_approval = COALESCE($3, requires_approval) WHERE id = $4 RETURNING *',
-      [label, color, requires_approval !== undefined ? requires_approval : null, req.params.id]
+      'UPDATE leave_types SET label = COALESCE($1, label), color = COALESCE($2, color) WHERE id = $3 RETURNING *',
+      [label, color, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
