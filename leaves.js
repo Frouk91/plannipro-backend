@@ -13,7 +13,10 @@ router.get('/', async (req, res) => {
     const where = [];
     let i = 1;
 
-    if (agent_id) {
+    if (req.agent.role === 'agent') {
+      where.push(`l.agent_id = $${i++}`);
+      params.push(req.agent.id);
+    } else if (agent_id) {
       where.push(`l.agent_id = $${i++}`);
       params.push(agent_id);
     }
@@ -39,7 +42,7 @@ router.get('/', async (req, res) => {
       ORDER BY l.created_at DESC
     `, params);
 
-    res.json({ leaves: rows });
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
@@ -57,7 +60,8 @@ router.post('/', async (req, res) => {
     if (!ltResult.rows.length) return res.status(400).json({ error: 'Type de congé invalide.' });
     const leaveType = ltResult.rows[0];
 
-    const autoApprove = !leaveType.requires_approval || req.agent.role === 'manager' || req.agent.role === 'admin';
+    const isPont = (leaveType.code || '').toLowerCase().includes('pont') || (leaveType.label || '').toLowerCase().includes('pont');
+    const autoApprove = !isPont && (!leaveType.requires_approval || req.agent.role === 'manager' || req.agent.role === 'admin');
     const status = autoApprove ? 'approved' : 'pending';
 
     const { rows } = await db.query(`
