@@ -13,10 +13,8 @@ router.get('/', async (req, res) => {
     const where = [];
     let i = 1;
 
-    if (req.agent.role === 'agent') {
-      where.push(`l.agent_id = $${i++}`);
-      params.push(req.agent.id);
-    } else if (agent_id) {
+    // Tous les rôles voient tous les congés (filtrage optionnel par agent_id)
+    if (agent_id) {
       where.push(`l.agent_id = $${i++}`);
       params.push(agent_id);
     }
