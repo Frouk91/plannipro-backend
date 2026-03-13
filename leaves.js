@@ -13,8 +13,10 @@ router.get('/', async (req, res) => {
     const where = [];
     let i = 1;
 
-    // Tous les rôles voient tous les congés (filtrage optionnel par agent_id)
-    if (agent_id) {
+    if (req.agent.role === 'agent') {
+      where.push(`l.agent_id = $${i++}`);
+      params.push(req.agent.id);
+    } else if (agent_id) {
       where.push(`l.agent_id = $${i++}`);
       params.push(agent_id);
     }
@@ -50,16 +52,18 @@ router.get('/', async (req, res) => {
 // POST /api/leaves
 router.post('/', async (req, res) => {
   try {
-    const { leave_type_code, start_date, end_date, reason, agent_id } = req.body;
+    const { leave_type_id, leave_type_code, start_date, end_date, reason, agent_id } = req.body;
 
     const target_agent_id = (req.agent.role !== 'agent' && agent_id) ? agent_id : req.agent.id;
 
-    const ltResult = await db.query('SELECT * FROM leave_types WHERE code = $1', [leave_type_code]);
+    let ltResult = await db.query('SELECT * FROM leave_types WHERE code = $1', [leave_type_code]);
+    if (!ltResult.rows.length && leave_type_id) {
+      ltResult = await db.query('SELECT * FROM leave_types WHERE id = $1', [leave_type_id]);
+    }
     if (!ltResult.rows.length) return res.status(400).json({ error: 'Type de congé invalide.' });
     const leaveType = ltResult.rows[0];
 
-    const isPont = (leaveType.code || '').toLowerCase().includes('pont') || (leaveType.label || '').toLowerCase().includes('pont');
-    const autoApprove = !isPont && (!leaveType.requires_approval || req.agent.role === 'manager' || req.agent.role === 'admin');
+    const autoApprove = !leaveType.requires_approval || req.agent.role === 'manager' || req.agent.role === 'admin';
     const status = autoApprove ? 'approved' : 'pending';
 
     const { rows } = await db.query(`
