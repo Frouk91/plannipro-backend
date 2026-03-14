@@ -13,6 +13,16 @@ async function initDB() {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await pool.query(sql);
     console.log('Schema initialisé !');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        message TEXT NOT NULL,
+        level VARCHAR(10) DEFAULT 'info',
+        author_id INTEGER REFERENCES agents(id),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('Table announcements OK');
   } catch (err) {
     console.log('Schema:', err.message);
   }
@@ -57,6 +67,7 @@ app.use('/api/leaves', leavesRouter);
 app.use('/api/agents', agentsRouter);
 app.use('/api/teams', require('./routes/teams'));
 app.use('/api/leave-types', require('./routes/leave-types'));
+app.use('/api/announcement', require('./announcement'));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
