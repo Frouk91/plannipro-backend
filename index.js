@@ -18,7 +18,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         message TEXT NOT NULL,
         level VARCHAR(10) DEFAULT 'info',
-        author_id INTEGER REFERENCES agents(id),
+        author_id INTEGER,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
@@ -84,7 +84,7 @@ app.get('/run-migration', async (req, res) => {
         id SERIAL PRIMARY KEY,
         message TEXT NOT NULL,
         level VARCHAR(10) DEFAULT 'info',
-        author_id INTEGER REFERENCES agents(id),
+        author_id INTEGER,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
