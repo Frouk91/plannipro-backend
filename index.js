@@ -75,6 +75,27 @@ app.get('/health', (_req, res) => {
 
 // Route temporaire d'import 2026 - À SUPPRIMER après usage
 
+app.get('/run-migration', async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        message TEXT NOT NULL,
+        level VARCHAR(10) DEFAULT 'info',
+        author_id INTEGER REFERENCES agents(id),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    res.json({ success: true, message: 'Table announcements créée ou déjà existante.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    await pool.end();
+  }
+});
+
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route introuvable.' });
 });
