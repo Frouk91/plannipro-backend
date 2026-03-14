@@ -9,10 +9,7 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT a.*, ag.first_name || ' ' || ag.last_name AS author_name
-       FROM announcements a
-       LEFT JOIN agents ag ON ag.id = a.author_id
-       ORDER BY a.created_at DESC LIMIT 1`
+      `SELECT * FROM announcements ORDER BY created_at DESC LIMIT 1`
     );
     if (rows.length === 0) return res.json(null);
     res.json(rows[0]);
@@ -34,20 +31,13 @@ router.post('/', async (req, res) => {
   try {
     // Supprimer l'ancienne annonce
     await db.query('DELETE FROM announcements');
+    const authorName = `${req.agent.first_name || ''} ${req.agent.last_name || ''}`.trim() || req.agent.email;
     const { rows } = await db.query(
-      `INSERT INTO announcements (message, level, author_id, created_at)
+      `INSERT INTO announcements (message, level, author_name, created_at)
        VALUES ($1, $2, $3, NOW()) RETURNING *`,
-      [message.trim(), lvl, req.agent.id]
+      [message.trim(), lvl, authorName]
     );
-    // Récupérer avec le nom de l'auteur
-    const { rows: full } = await db.query(
-      `SELECT a.*, ag.first_name || ' ' || ag.last_name AS author_name
-       FROM announcements a
-       LEFT JOIN agents ag ON ag.id = a.author_id
-       WHERE a.id = $1`,
-      [rows[0].id]
-    );
-    res.json(full[0]);
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });

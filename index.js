@@ -18,7 +18,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         message TEXT NOT NULL,
         level VARCHAR(10) DEFAULT 'info',
-        author_id INTEGER,
+        author_name TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
@@ -75,6 +75,19 @@ app.get('/health', (_req, res) => {
 
 // Route temporaire d'import 2026 - À SUPPRIMER après usage
 
+app.get('/drop-announcements', async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  try {
+    await pool.query('DROP TABLE IF EXISTS announcements;');
+    res.json({ success: true, message: 'Table announcements supprimée.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    await pool.end();
+  }
+});
+
 app.get('/run-migration', async (req, res) => {
   const { Pool } = require('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
@@ -84,7 +97,7 @@ app.get('/run-migration', async (req, res) => {
         id SERIAL PRIMARY KEY,
         message TEXT NOT NULL,
         level VARCHAR(10) DEFAULT 'info',
-        author_id INTEGER,
+        author_name TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
