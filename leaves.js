@@ -2,21 +2,22 @@ const express = require('express');
 const db = require('./pool');
 const { authenticate } = require('./auth-middleware');
 
-// ── Email notifications ──
-async function sendEmail(to, subject, html) {
-  if (!process.env.RESEND_API_KEY) return;
+// ── Email notifications (Brevo) ──
+async function sendEmail(toList, subject, html) {
+  if (!process.env.BREVO_API_KEY) return;
   try {
-    await fetch('https://api.resend.com/emails', {
+    const to = Array.isArray(toList) ? toList : [toList];
+    await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+        'api-key': process.env.BREVO_API_KEY
       },
       body: JSON.stringify({
-        from: 'Mon Planning <onboarding@resend.dev>',
-        to,
+        sender: { name: 'Mon Planning', email: process.env.NOTIF_FROM_EMAIL || 'noreply@monplanning.fr' },
+        to: to.map(email => ({ email })),
         subject,
-        html
+        htmlContent: html
       })
     });
   } catch (e) {
