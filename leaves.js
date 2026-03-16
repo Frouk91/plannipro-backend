@@ -94,10 +94,7 @@ router.post('/', async (req, res) => {
         color: leaveType.color,
         leave_type_id: leaveType.id,
       }
-    }); catch (emailErr) {
-        console.error('Erreur envoi email:', emailErr.message);
-      }
-    }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
