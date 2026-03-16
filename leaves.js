@@ -7,21 +7,20 @@ async function sendEmail(toList, subject, html) {
   if (!process.env.BREVO_API_KEY) return;
   try {
     const to = Array.isArray(toList) ? toList : [toList];
-    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+    await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-key': process.env.BREVO_API_KEY
       },
       body: JSON.stringify({
-        sender: { name: 'Mon Planning', email: process.env.NOTIF_FROM_EMAIL || 'noreply@monplanning.fr' },
+        sender: { name: 'Mon Planning', email: process.env.NOTIF_FROM_EMAIL },
         to: to.map(email => ({ email })),
         subject,
         htmlContent: html
       })
     });
-    const brevoData = await brevoRes.json();
-    console.log('Brevo response:', JSON.stringify(brevoData));
+
   } catch (e) {
     console.error('Email error:', e.message);
   }
