@@ -2,6 +2,28 @@ const express = require('express');
 const db = require('./pool');
 const { authenticate } = require('./auth-middleware');
 
+// ── Email notifications ──
+async function sendEmail(to, subject, html) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: 'Mon Planning <onboarding@resend.dev>',
+        to,
+        subject,
+        html
+      })
+    });
+  } catch (e) {
+    console.error('Email error:', e.message);
+  }
+}
+
 const router = express.Router();
 router.use(authenticate);
 
@@ -13,7 +35,10 @@ router.get('/', async (req, res) => {
     const where = [];
     let i = 1;
 
-    if (agent_id) {
+    if (req.agent.role === 'agent') {
+      where.push(`l.agent_id = $${i++}`);
+      params.push(req.agent.id);
+    } else if (agent_id) {
       where.push(`l.agent_id = $${i++}`);
       params.push(agent_id);
     }
@@ -76,7 +101,7 @@ router.post('/', async (req, res) => {
 
     const agent = agentResult.rows[0];
 
-    res.status(201).json({
+    const responsePayload = {
       leave: {
         ...leave,
         agent_id: target_agent_id,
@@ -89,7 +114,49 @@ router.post('/', async (req, res) => {
         color: leaveType.color,
         leave_type_id: leaveType.id,
       }
-    });
+    };
+    res.status(201).json(responsePayload);
+
+    // ── Notifier les managers par email (si demande en attente) ──
+    if (status === 'pending') {
+      try {
+        const managersResult = await db.query(
+          `SELECT email FROM agents WHERE role IN ('manager', 'admin') AND email IS NOT NULL`
+        );
+        const managerEmails = managersResult.rows.map(r => r.email).filter(Boolean);
+        if (managerEmails.length > 0) {
+          const agentName = `${agent.first_name} ${agent.last_name}`;
+          const startFr = new Date(start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+          const endFr   = new Date(end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+          const period  = start_date === end_date ? startFr : `${startFr} → ${endFr}`;
+          const subject = `🔔 Nouvelle demande de congé — ${agentName}`;
+          const html = `
+            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:12px;">
+              <div style="background:linear-gradient(135deg,#6366f1,#818cf8);padding:20px 24px;border-radius:10px;margin-bottom:20px;">
+                <h2 style="color:#fff;margin:0;font-size:18px;">🔔 Nouvelle demande de congé</h2>
+                <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;font-size:13px;">En attente de validation</p>
+              </div>
+              <div style="background:#fff;padding:20px 24px;border-radius:10px;border:1px solid #e2e8f0;">
+                <table style="width:100%;font-size:14px;border-collapse:collapse;">
+                  <tr><td style="padding:8px 0;color:#64748b;width:130px;">👤 Agent</td><td style="padding:8px 0;font-weight:600;color:#1e293b;">${agentName}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b;">🏷 Équipe</td><td style="padding:8px 0;color:#1e293b;">${agent.team_name || '—'}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b;">📋 Type</td><td style="padding:8px 0;color:#1e293b;">${leaveType.label}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b;">📅 Période</td><td style="padding:8px 0;font-weight:600;color:#1e293b;">${period}</td></tr>
+                  ${reason ? `<tr><td style="padding:8px 0;color:#64748b;">💬 Raison</td><td style="padding:8px 0;color:#1e293b;">${reason}</td></tr>` : ''}
+                </table>
+              </div>
+              <div style="text-align:center;margin-top:20px;">
+                <a href="https://plannipro-frontend.vercel.app" style="background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Voir dans Mon Planning</a>
+              </div>
+              <p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;">Mon Planning · Notification automatique</p>
+            </div>
+          `;
+          await sendEmail(managerEmails, subject, html);
+        }
+      } catch (emailErr) {
+        console.error('Erreur envoi email:', emailErr.message);
+      }
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
