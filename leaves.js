@@ -15,10 +15,9 @@ router.get('/', async (req, res) => {
     const where = [];
     let i = 1;
 
-    if (req.agent.role === 'agent') {
-      where.push(`l.agent_id = $${i++}`);
-      params.push(req.agent.id);
-    } else if (agent_id) {
+    // Les agents ET managers/admins peuvent voir tous les congés
+    // Optionnel : filtrer par agent_id si fourni (pour les managers/admins)
+    if (agent_id) {
       where.push(`l.agent_id = $${i++}`);
       params.push(agent_id);
     }
