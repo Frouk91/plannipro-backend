@@ -58,6 +58,16 @@ router.post('/register', [
       [agent.id, refreshToken]
     );
 
+    // 🔥 BROADCASTER À TOUS LES CLIENTS - AGENT CRÉÉ
+    req.io.emit('agent-added', {
+      id: agent.id,
+      name: `${first_name} ${last_name}`,
+      email: agent.email,
+      role: agent.role,
+      avatar: avatar_initials,
+      team: team_id || null
+    });
+
     res.status(201).json({ agent, accessToken, refreshToken });
   } catch (err) {
     console.error(err);
