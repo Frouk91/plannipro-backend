@@ -2,6 +2,8 @@ const express = require('express');
 const db = require('./pool');
 const { authenticate } = require('./auth-middleware');
 
+
+
 const router = express.Router();
 router.use(authenticate);
 
@@ -48,13 +50,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/leaves - CRÉER UN CONGÉ
+// POST /api/leaves
 router.post('/', async (req, res) => {
-  console.log('🔴 [DEBUG] POST /api/leaves appelé');
-  console.log('🔴 [DEBUG] req.io existe?', !!req.io);
   try {
     const { leave_type_code, start_date, end_date, reason, agent_id } = req.body;
-    console.log('🔴 [DEBUG] Paramètres reçus:', { leave_type_code, start_date, end_date, agent_id });
 
     const target_agent_id = (req.agent.role !== 'agent' && agent_id) ? agent_id : req.agent.id;
 
@@ -72,7 +71,6 @@ router.post('/', async (req, res) => {
     `, [target_agent_id, leaveType.id, start_date, end_date, status, reason || null]);
 
     const leave = rows[0];
-    console.log('🔴 [DEBUG] Congé créé en BD:', leave.id);
 
     const agentResult = await db.query(`
       SELECT a.first_name, a.last_name, a.avatar_initials, t.name AS team_name
@@ -82,74 +80,44 @@ router.post('/', async (req, res) => {
 
     const agent = agentResult.rows[0];
 
-    const leaveData = {
-      ...leave,
-      agent_id: target_agent_id,
-      first_name: agent.first_name,
-      last_name: agent.last_name,
-      avatar_initials: agent.avatar_initials,
-      team_name: agent.team_name,
-      leave_type_code: leaveType.code,
-      leave_type_label: leaveType.label,
-      color: leaveType.color,
-      leave_type_id: leaveType.id,
-    };
-
-    // 🔥 BROADCASTER À TOUS LES CLIENTS - CONGÉ CRÉÉ
-    console.log('✅ Congé créé avec succès:', leave.id);
-    console.log('🔴 [DEBUG] Avant emit - req.io:', !!req.io);
-    if (req.io) {
-      console.log('📢 Émission leave-added vers tous les clients');
-      req.io.emit('leave-added', {
-        userId: target_agent_id,
-        leave: leaveData
-      });
-      console.log('✅ Événement leave-added émis avec succès');
-    } else {
-      console.log('❌ ERREUR: req.io est undefined!');
-    }
-
-    res.status(201).json({ leave: leaveData });
+    res.status(201).json({
+      leave: {
+        ...leave,
+        agent_id: target_agent_id,
+        first_name: agent.first_name,
+        last_name: agent.last_name,
+        avatar_initials: agent.avatar_initials,
+        team_name: agent.team_name,
+        leave_type_code: leaveType.code,
+        leave_type_label: leaveType.label,
+        color: leaveType.color,
+        leave_type_id: leaveType.id,
+      }
+    });
   } catch (err) {
-    console.error('❌ Erreur POST /api/leaves:', err);
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
 
-// PATCH /api/leaves/:id - MODIFIER UN CONGÉ
+// PATCH /api/leaves/:id
 router.patch('/:id', async (req, res) => {
   try {
-    console.log('🔴 [DEBUG] PATCH /api/leaves/:id appelé');
     const { status, comment } = req.body;
     const { rows } = await db.query(`
       UPDATE leaves SET status = $1, comment = $2 WHERE id = $3 RETURNING *
     `, [status, comment || null, req.params.id]);
-
     if (!rows.length) return res.status(404).json({ error: 'Congé introuvable.' });
-
-    const leave = rows[0];
-
-    // 🔥 BROADCASTER À TOUS LES CLIENTS - CONGÉ MODIFIÉ
-    console.log('✏️ Congé modifié:', leave.id);
-    console.log('📢 Émission leave-updated vers tous les clients');
-    if (req.io) {
-      req.io.emit('leave-updated', {
-        userId: leave.agent_id,
-        leave: leave
-      });
-    }
-
-    res.json({ leave: leave });
+    res.json({ leave: rows[0] });
   } catch (err) {
-    console.error('❌ Erreur PATCH /api/leaves/:id:', err);
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
 
-// DELETE /api/leaves/:id - SUPPRIMER UN CONGÉ
+// DELETE /api/leaves/:id
 router.delete('/:id', async (req, res) => {
   try {
-    console.log('🔴 [DEBUG] DELETE /api/leaves/:id appelé');
     const { rows } = await db.query('SELECT * FROM leaves WHERE id = $1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Congé introuvable.' });
 
@@ -158,20 +126,9 @@ router.delete('/:id', async (req, res) => {
     if (!canDelete) return res.status(403).json({ error: 'Non autorisé.' });
 
     await db.query('DELETE FROM leaves WHERE id = $1', [req.params.id]);
-
-    // 🔥 BROADCASTER À TOUS LES CLIENTS - CONGÉ SUPPRIMÉ
-    console.log('🗑️ Congé supprimé:', req.params.id);
-    console.log('📢 Émission leave-deleted vers tous les clients');
-    if (req.io) {
-      req.io.emit('leave-deleted', {
-        id: req.params.id,
-        userId: leave.agent_id
-      });
-    }
-
     res.json({ success: true });
   } catch (err) {
-    console.error('❌ Erreur DELETE /api/leaves/:id:', err);
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
   }
 });

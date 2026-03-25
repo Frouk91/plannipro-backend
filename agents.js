@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 });
 
 
-// PATCH /api/agents/:id - MODIFIER UN AGENT
+// PATCH /api/agents/:id
 router.patch('/:id', async (req, res) => {
   try {
     const { first_name, last_name, email, role, team, password, can_book_presence_sites } = req.body;
@@ -63,17 +63,6 @@ router.patch('/:id', async (req, res) => {
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Agent introuvable.' });
-
-    // 🔥 BROADCASTER À TOUS LES CLIENTS - AGENT MODIFIÉ
-    req.io.emit('agent-updated', {
-      id: rows[0].id,
-      name: `${rows[0].first_name} ${rows[0].last_name}`,
-      email: rows[0].email,
-      role: rows[0].role,
-      avatar: rows[0].avatar_initials,
-      can_book_presence_sites: rows[0].can_book_presence_sites
-    });
-
     res.json({ agent: rows[0] });
   } catch (err) {
     console.error(err);
@@ -81,14 +70,10 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/agents/:id - SUPPRIMER UN AGENT
+// DELETE /api/agents/:id
 router.delete('/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM agents WHERE id = $1', [req.params.id]);
-
-    // 🔥 BROADCASTER À TOUS LES CLIENTS - AGENT SUPPRIMÉ
-    req.io.emit('agent-deleted', { id: req.params.id });
-
     res.json({ success: true });
   } catch (err) {
     console.error(err);
