@@ -9,26 +9,39 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   try {
     const { team_name, start_date, end_date } = req.query;
-    let query = 'SELECT * FROM astreintes WHERE 1=1';
+    let query = `
+      SELECT 
+        a.id,
+        a.team_name,
+        a.row_type,
+        a.date_key,
+        a.agent_id,
+        COALESCE(ag.first_name || ' ' || ag.last_name, '') as agent_name,
+        a.created_at,
+        a.updated_at
+      FROM astreintes a
+      LEFT JOIN agents ag ON a.agent_id = ag.id
+      WHERE 1=1
+    `;
     const params = [];
     let paramIndex = 1;
 
     if (team_name) {
-      query += ` AND team_name = $${paramIndex++}`;
+      query += ` AND a.team_name = $${paramIndex++}`;
       params.push(team_name);
     }
 
     if (start_date) {
-      query += ` AND date_key >= $${paramIndex++}`;
+      query += ` AND a.date_key >= $${paramIndex++}`;
       params.push(start_date);
     }
 
     if (end_date) {
-      query += ` AND date_key <= $${paramIndex++}`;
+      query += ` AND a.date_key <= $${paramIndex++}`;
       params.push(end_date);
     }
 
-    query += ' ORDER BY date_key, team_name, row_type';
+    query += ' ORDER BY a.date_key, a.team_name, a.row_type';
 
     const { rows } = await db.query(query, params);
     res.json(rows);
