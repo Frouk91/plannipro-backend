@@ -43,7 +43,6 @@ router.post('/', async (req, res) => {
   try {
     const { team_name, row_type, date_key, agent_id } = req.body;
 
-    // Validation
     if (!team_name || !row_type || !date_key) {
       return res.status(400).json({ error: 'Paramètres manquants: team_name, row_type, date_key' });
     }
@@ -53,7 +52,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: `row_type doit être parmi: ${validRowTypes.join(', ')}` });
     }
 
-    // Vérifier que l'agent existe (si fourni)
     if (agent_id) {
       const agentCheck = await db.query('SELECT id FROM agents WHERE id = $1', [agent_id]);
       if (!agentCheck.rows.length) {
@@ -66,11 +64,37 @@ router.post('/', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (team_name, row_type, date_key) 
       DO UPDATE SET agent_id = $4, updated_at = NOW()
-      RETURNING *
+      RETURNING 
+        astreintes.id,
+        astreintes.team_name,
+        astreintes.row_type,
+        astreintes.date_key,
+        astreintes.agent_id,
+        COALESCE(agents.first_name || ' ' || agents.last_name, '') as agent_name,
+        astreintes.created_at,
+        astreintes.updated_at
     `, [team_name, row_type, date_key, agent_id || null, req.agent.id]);
 
-    console.log('✅ Astreinte créée/mise à jour:', rows[0].id);
-    res.status(201).json(rows[0]);
+    // ⚠️ ATTENTION: Le RETURNING ne retourne que astreintes, pas le JOIN!
+    // Il faut faire un SELECT après pour avoir le nom!
+
+    const { rows: finalRows } = await db.query(`
+      SELECT 
+        a.id,
+        a.team_name,
+        a.row_type,
+        a.date_key,
+        a.agent_id,
+        COALESCE(ag.first_name || ' ' || ag.last_name, '') as agent_name,
+        a.created_at,
+        a.updated_at
+      FROM astreintes a
+      LEFT JOIN agents ag ON a.agent_id = ag.id
+      WHERE a.id = $1
+    `, [rows[0].id]);
+
+    console.log('✅ Astreinte créée/mise à jour:', finalRows[0].id);
+    res.status(201).json(finalRows[0]);
   } catch (err) {
     console.error('❌ Erreur POST /api/astreintes:', err);
     res.status(500).json({ error: 'Erreur serveur.' });
@@ -115,7 +139,7 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT id FROM astreintes WHERE id = $1', [req.params.id]);
-    
+
     if (!rows.length) {
       return res.status(404).json({ error: 'Astreinte introuvable.' });
     }
