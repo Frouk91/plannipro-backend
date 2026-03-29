@@ -43,6 +43,8 @@ router.post('/', async (req, res) => {
   try {
     const { team_name, row_type, date_key, agent_id } = req.body;
 
+    console.log('🔵 POST reçu:', { team_name, row_type, date_key, agent_id });
+
     if (!team_name || !row_type || !date_key) {
       return res.status(400).json({ error: 'Paramètres manquants' });
     }
@@ -52,22 +54,18 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'row_type invalide' });
     }
 
-    if (agent_id) {
-      const agentCheck = await db.query('SELECT id FROM agents WHERE id = $1', [agent_id]);
-      if (!agentCheck.rows.length) {
-        return res.status(400).json({ error: 'Agent introuvable.' });
-      }
-    }
-
-    // Insertion simple
-    await db.query(`
+    // INSERT
+    const insertResult = await db.query(`
       INSERT INTO astreintes (team_name, row_type, date_key, agent_id, created_by)
       VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (team_name, row_type, date_key) 
       DO UPDATE SET agent_id = $4, updated_at = NOW()
-    `, [team_name, row_type, date_key, agent_id || null, req.agent?.id]);
+      RETURNING id
+    `, [team_name, row_type, date_key, agent_id || null, req.agent?.id || null]);
 
-    // Récupère les données avec le JOIN
+    console.log('✅ INSERT OK:', insertResult.rows[0]);
+
+    // SELECT avec JOIN
     const { rows } = await db.query(`
       SELECT 
         a.id,
@@ -76,18 +74,18 @@ router.post('/', async (req, res) => {
         a.date_key,
         a.agent_id,
         COALESCE(ag.first_name || ' ' || ag.last_name, '') as agent_name,
-        a.created_at,
-        a.updated_at
+        a.created_at
       FROM astreintes a
       LEFT JOIN agents ag ON a.agent_id = ag.id
-      WHERE a.team_name = $1 AND a.row_type = $2 AND a.date_key = $3
-    `, [team_name, row_type, date_key]);
+      WHERE a.id = $1
+    `, [insertResult.rows[0].id]);
 
-    console.log('✅ Astreinte créée:', rows[0]?.id);
+    console.log('✅ SELECT OK:', rows[0]);
     res.status(201).json(rows[0]);
   } catch (err) {
-    console.error('❌ Erreur POST /api/astreintes:', err);
-    res.status(500).json({ error: 'Erreur serveur.' });
+    console.error('❌ ERREUR POST:', err.message);
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
