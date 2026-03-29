@@ -1,13 +1,10 @@
 require('dotenv').config();
-const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const db = require('./pool');
 
 async function initDB() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+  const pool = db;
 
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
@@ -26,8 +23,6 @@ async function initDB() {
   } catch (err) {
     console.log('Schema:', err.message);
   }
-
-  await pool.end();
 }
 
 initDB();
@@ -67,6 +62,7 @@ app.use('/api/leaves', leavesRouter);
 app.use('/api/agents', agentsRouter);
 app.use('/api/teams', require('./routes/teams'));
 app.use('/api/leave-types', require('./routes/leave-types'));
+app.use('/api/astreintes', require('./astreintes'));
 app.use('/api/announcement', require('./announcement'));
 
 app.get('/health', (_req, res) => {
@@ -76,23 +72,17 @@ app.get('/health', (_req, res) => {
 // Route temporaire d'import 2026 - À SUPPRIMER après usage
 
 app.get('/drop-announcements', async (req, res) => {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   try {
-    await pool.query('DROP TABLE IF EXISTS announcements;');
+    await db.query('DROP TABLE IF EXISTS announcements;');
     res.json({ success: true, message: 'Table announcements supprimée.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  } finally {
-    await pool.end();
   }
 });
 
 app.get('/run-migration', async (req, res) => {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   try {
-    await pool.query(`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS announcements (
         id SERIAL PRIMARY KEY,
         message TEXT NOT NULL,
@@ -104,8 +94,6 @@ app.get('/run-migration', async (req, res) => {
     res.json({ success: true, message: 'Table announcements créée ou déjà existante.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  } finally {
-    await pool.end();
   }
 });
 
@@ -119,11 +107,9 @@ app.use((err, _req, res, _next) => {
 });
 
 app.get('/run-import', async (req, res) => {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   try {
     const sql = require('fs').readFileSync(require('path').join(__dirname, 'import_data.sql'), 'utf8');
-    await pool.query(sql);
+    await db.query(sql);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
