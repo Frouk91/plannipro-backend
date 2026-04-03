@@ -115,8 +115,8 @@ app.get('/health', (_req, res) => {
 app.patch('/api/agents/reorder', authenticate, async (req, res) => {
   try {
     // Seuls les managers
-    if (req.agent.role !== 'manager') {
-      return res.status(403).json({ error: 'Seuls les managers peuvent réorganiser les agents.' });
+    if (req.agent.role !== 'manager' && req.agent.role !== 'admin') {
+      return res.status(403).json({ error: 'Seuls les managers et admins peuvent réorganiser.' });
     }
 
     const { agentIds } = req.body;
