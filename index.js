@@ -22,14 +22,14 @@ async function initDB() {
 
     // ========== MIGRATIONS AUTO ==========
     console.log('🔄 Vérification des migrations...');
-    
+
     // Ajouter colonne agent_display_order si elle n'existe pas
     await db.query(`
       ALTER TABLE agents 
       ADD COLUMN IF NOT EXISTS agent_display_order INTEGER DEFAULT 999;
     `);
     console.log('✅ Colonne agent_display_order OK');
-    
+
     // Initialiser l'ordre pour les agents existants
     await db.query(`
       UPDATE agents 
@@ -77,6 +77,30 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRouter);
 app.use('/api/leaves', leavesRouter);
+
+// ========== ROUTE REORDER AGENTS (AVANT app.use('/api/agents')) ==========
+app.patch('/api/agents/reorder', authenticate, async (req, res) => {
+  try {
+    if (req.agent.role !== 'manager') {
+      return res.status(403).json({ error: 'Seuls les managers peuvent réorganiser.' });
+    }
+    const { agentIds } = req.body;
+    if (!agentIds || !Array.isArray(agentIds) || agentIds.length === 0) {
+      return res.status(400).json({ error: 'agentIds invalide.' });
+    }
+    for (let i = 0; i < agentIds.length; i++) {
+      await db.query('UPDATE agents SET agent_display_order = $1 WHERE id = $2', [i + 1, agentIds[i]]);
+    }
+    const { rows } = await db.query('SELECT * FROM agents ORDER BY agent_display_order');
+    console.log('✅ Ordre réorganisé');
+    res.json({ success: true, agents: rows });
+  } catch (err) {
+    console.error('❌ Erreur reorder:', err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+// ========== FIN REORDER ==========
+
 app.use('/api/agents', agentsRouter);
 app.use('/api/teams', require('./routes/teams'));
 app.use('/api/leave-types', require('./routes/leave-types'));
@@ -112,7 +136,7 @@ app.patch('/api/agents/reorder', authenticate, async (req, res) => {
     const { rows } = await db.query(
       'SELECT * FROM agents ORDER BY agent_display_order'
     );
-    
+
     console.log(`✅ Ordre des agents réorganisé par ${req.agent.email}`);
     res.json({ success: true, agents: rows });
   } catch (err) {
