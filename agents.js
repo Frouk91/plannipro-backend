@@ -7,10 +7,10 @@ router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT a.id, a.first_name, a.last_name, a.email, a.role,
-             a.avatar_initials, a.can_book_presence_sites, t.name as team_name
+             a.avatar_initials, a.can_book_presence_sites, a.agent_display_order, t.name as team_name
       FROM agents a
       LEFT JOIN teams t ON a.team_id = t.id
-      ORDER BY a.first_name, a.last_name
+      ORDER BY a.agent_display_order
     `);
     res.json({ agents: result.rows });
   } catch (err) {
