@@ -31,11 +31,12 @@ async function initDB() {
     console.log('✅ Colonne agent_display_order OK');
 
     // Initialiser l'ordre pour les agents existants
-    await db.query(`
-      UPDATE agents 
-      SET agent_display_order = ROW_NUMBER() OVER (ORDER BY created_at ASC, id ASC)
-      WHERE agent_display_order = 999;
-    `);
+    const { rows: agentsToOrder } = await db.query(
+      'SELECT id FROM agents WHERE agent_display_order = 999 ORDER BY created_at ASC, id ASC'
+    );
+    for (let i = 0; i < agentsToOrder.length; i++) {
+      await db.query('UPDATE agents SET agent_display_order = $1 WHERE id = $2', [i + 1, agentsToOrder[i].id]);
+    }
     console.log('✅ Ordre des agents initialisé');
     // ========== FIN MIGRATIONS ==========
 
