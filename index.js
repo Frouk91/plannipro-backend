@@ -81,8 +81,11 @@ app.use('/api/leaves', leavesRouter);
 // ========== ROUTE REORDER AGENTS (AVANT app.use('/api/agents')) ==========
 app.patch('/api/agents/reorder', authenticate, async (req, res) => {
   try {
-    if (req.agent.role !== 'manager') {
-      return res.status(403).json({ error: 'Seuls les managers peuvent réorganiser.' });
+    console.log('🔍 DEBUG - role de l\'utilisateur:', req.agent.role);
+    console.log('🔍 DEBUG - email:', req.agent.email);
+
+    if (req.agent.role !== 'manager' && req.agent.role !== 'admin') {
+      return res.status(403).json({ error: 'Seuls les managers et admins peuvent réorganiser.' });
     }
     const { agentIds } = req.body;
     if (!agentIds || !Array.isArray(agentIds) || agentIds.length === 0) {
