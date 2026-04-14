@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const db = require('./pool');
-const bcrypt = require('bcrypt');
 
 // GET tous les agents
 router.get('/', async (req, res) => {
@@ -20,6 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // PATCH /api/agents/:id
 router.patch('/:id', async (req, res) => {
   try {
@@ -31,6 +31,7 @@ router.patch('/:id', async (req, res) => {
       const teamResult = await db.query('SELECT id FROM teams WHERE name = $1', [team]);
       if (teamResult.rows.length > 0) team_id = teamResult.rows[0].id;
     }
+    // Si team est une chaîne vide, on retire l'agent de son équipe
     if (team === '') team_id = null;
 
     // Construire la requête dynamiquement
@@ -44,14 +45,10 @@ router.patch('/:id', async (req, res) => {
     if (role) { fields.push(`role = $${idx++}`); values.push(role); }
     if (team_id !== null) { fields.push(`team_id = $${idx++}`); values.push(team_id); }
     if (team === '') { fields.push(`team_id = $${idx++}`); values.push(null); }
-
-    // ✅ Hash du mot de passe avant sauvegarde
     if (password && password.trim().length > 0) {
-      const hashedPassword = await bcrypt.hash(password.trim(), 10);
       fields.push(`password = $${idx++}`);
-      values.push(hashedPassword);
+      values.push(password);
     }
-
     if (can_book_presence_sites !== undefined) {
       fields.push(`can_book_presence_sites = $${idx++}`);
       values.push(can_book_presence_sites);
@@ -77,21 +74,6 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM agents WHERE id = $1', [req.params.id]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur.' });
-  }
-});
-
-// PATCH /api/agents/reorder
-router.patch('/reorder', async (req, res) => {
-  try {
-    const { agentIds } = req.body;
-    if (!Array.isArray(agentIds)) return res.status(400).json({ error: 'agentIds requis.' });
-    await Promise.all(agentIds.map((id, idx) =>
-      db.query('UPDATE agents SET agent_display_order = $1 WHERE id = $2', [idx + 1, id])
-    ));
     res.json({ success: true });
   } catch (err) {
     console.error(err);
