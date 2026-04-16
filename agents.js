@@ -48,7 +48,7 @@ router.patch('/:id', async (req, res) => {
     // ✅ Hash du mot de passe avant sauvegarde
     if (password && password.trim().length > 0) {
       const hashedPassword = await bcrypt.hash(password.trim(), 10);
-      fields.push(`password = $${idx++}`);
+      fields.push(`password_hash = $${idx++}`);
       values.push(hashedPassword);
     }
 
