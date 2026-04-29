@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
       SELECT a.id, a.first_name, a.last_name, a.email, a.role,
-             a.avatar_initials, a.can_book_presence_sites, a.agent_display_order, t.name as team_name
+             a.avatar_initials, a.can_book_presence_sites, a.agent_display_order, a.sub_team, t.name as team_name
       FROM agents a
       LEFT JOIN teams t ON a.team_id = t.id
       ORDER BY a.agent_display_order
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/agents/:id
 router.patch('/:id', async (req, res) => {
   try {
-    const { first_name, last_name, email, role, team, password, can_book_presence_sites } = req.body;
+    const { first_name, last_name, email, role, team, password, can_book_presence_sites, sub_team } = req.body;
 
     // Résoudre l'équipe par nom → ID
     let team_id = null;
@@ -57,11 +57,16 @@ router.patch('/:id', async (req, res) => {
       values.push(can_book_presence_sites);
     }
 
+    if (sub_team !== undefined) {
+      fields.push(`sub_team = $${idx++}`);
+      values.push(sub_team || null);
+    }
+
     if (fields.length === 0) return res.json({ message: 'Rien à modifier.' });
 
     values.push(req.params.id);
     const { rows } = await db.query(
-      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, first_name, last_name, email, role, avatar_initials, can_book_presence_sites`,
+      `UPDATE agents SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, first_name, last_name, email, role, avatar_initials, can_book_presence_sites, sub_team`,
       values
     );
 
