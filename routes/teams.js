@@ -22,6 +22,21 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.patch('/:id', async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Nom requis' });
+  try {
+    const result = await db.query(
+      'UPDATE teams SET name = $1 WHERE id = $2 RETURNING *',
+      [name.trim(), req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Équipe introuvable' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM teams WHERE id = $1', [req.params.id]);
